@@ -8,7 +8,13 @@ import schedule from "node-schedule";
 
 // });
 
-main();
+try {
+  main();
+} catch (error) {
+  // console.error(error);
+  setTimeout(main(), 1000 * 5);
+}
+
 /**
  * 主函数
  */
