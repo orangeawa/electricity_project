@@ -4,16 +4,15 @@ import path from "path";
 import schedule from "node-schedule";
 
 // 定时获取数据
-// schedule.scheduleJob("0 0 23 * * *", () => {
+schedule.scheduleJob("0 *0 * * * *", () => {
+  try {
+    main();
+  } catch (error) {
+    console.error(error);
+    setTimeout(main(), 1000 * 5);
+  }
+});
 
-// });
-
-try {
-  main();
-} catch (error) {
-  // console.error(error);
-  setTimeout(main(), 1000 * 5);
-}
 
 /**
  * 主函数
@@ -28,7 +27,6 @@ async function main() {
     allE: rawData.map.showData["电表总用电量"],
     nowE: rawData.map.showData["当前剩余电量"],
   };
-  console.log(data);
 
   // 保存数据到文件中
   saveData(url, data);
@@ -55,7 +53,7 @@ async function getData() {
       "Content-Type": "application/x-www-form-urlencoded", // 指定请求体的数据类型为URL编码格式
       Authorization: "Basic Y2hhcmdlOmNoYXJnZV9zZWNyZXQ=", // 使用Basic认证，认证信息经过Base64编码
       "synjones-auth":
-        "bearer eyJ0eXAiOiJKc29uV2ViVG9rZW4iLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpc3N1c2VyIiwiYXVkIjoiYXVkaWVuY2UiLCJzbm8iOiIyMDIxODU1MyIsIm5hbWUiOiLpmYjmgZLlv5ciLCJpZCI6MTM1NSwibG9naW5Gcm9tIjoid2VjaGF0LXdvcmsiLCJ1dWlkIjoiZjc2MjM0Nzg4MzIyZjIwYTRhNGZkNGIwMTZjMjhmNDAiLCJhY2NvdW50IjoiMjAyMTg1NTMifQ.GEA04JWB-i05WxGQ0UTs72LizFy0sgYLYGuI7sC2mxg", // 指定使用的认证令牌类型为Bearer，并提供令牌值
+        "bearer eyJ0eXAiOiJKc29uV2ViVG9rZW4iLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpc3N1c2VyIiwiYXVkIjoiYXVkaWVuY2UiLCJzbm8iOiIyMDIxODU1MyIsIm5hbWUiOiLpmYjmgZLlv5ciLCJpZCI6MTM1NSwibG9naW5Gcm9tIjoid2VjaGF0LXdvcmsiLCJ1dWlkIjoiMjkyOGVhZTZhYjNiZmIwMDc2MzY4YjY3YmQzNjhiNmIiLCJhY2NvdW50IjoiMjAyMTg1NTMifQ.YTs1eGLDYNdpZydwopg1m-ZpewnmGjVdplpnmlm2FVU", // 指定使用的认证令牌类型为Bearer，并提供令牌值
     },
   };
 
