@@ -3,33 +3,63 @@ import fs from "fs";
 import path from "path";
 import schedule from "node-schedule";
 
+// 程序启动日志
+log("程序启动!");
+
 // 定时获取数据
-schedule.scheduleJob("0 *0 * * * *", () => {
+schedule.scheduleJob("0 0 * * * *", () => {
   try {
     main();
   } catch (error) {
-    console.error(error);
-    setTimeout(main(), 1000 * 5);
+    log(`定时任务错误: ${error.message}`);
+    setTimeout(() => main(), 1000 * 5);
   }
 });
-
 
 /**
  * 主函数
  */
 async function main() {
-  const t = new Date();
-  const url = `./data/${t.getFullYear()}/${t.getMonth() + 1}/${t.getDate()}.json`;
-  let rawData = await getData();
+  try {
+    const t = new Date();
+    const url = `./data/${t.getFullYear()}/${t.getMonth() + 1}/${t.getDate()}.json`;
+    let rawData = await getData();
 
-  const data = {
-    time: t.getHours(),
-    allE: rawData.map.showData["电表总用电量"],
-    nowE: rawData.map.showData["当前剩余电量"],
-  };
+    // let rawData = {
+    //   msg: 'success',
+    //   code: 200,
+    //   map: {
+    //     showData: { '电表总用电量': 'test', '当前剩余电量': '21.08' },
+    //     data: {
+    //       campus: '江西环境工程职业学院',
+    //       tsmAbstract: '校区#江西环境工程职业学院;楼栋#16栋;房间#16-205空调',
+    //       campusid: '1sh',
+    //       yktmercacc: '1000002',
+    //       remark: '{"电表总用电量":"4859.35","当前剩余电量":"21.08"}',
+    //       sroomid: 934,
+    //       building: '16栋',
+    //       roomid: '11841',
+    //       room: '16-205空调',
+    //       buildingid: '71'
+    //     },
+    //     dataType: 'IEC',
+    //     surplusCharge: '21.08'
+    //   }
+    // }
 
-  // 保存数据到文件中
-  saveData(url, data);
+    const data = {
+      timeH: t.getHours(),
+      timeM: t.getMinutes(),
+      allE: rawData.map.showData["电表总用电量"],
+      nowE: rawData.map.showData["当前剩余电量"],
+    };
+
+    // 保存数据到文件中
+    saveData(url, data);
+    log(`:数据写入成功`);
+  } catch (error) {
+    log(`主函数错误: ${error.message}`);
+  }
 }
 
 /**
@@ -57,10 +87,13 @@ async function getData() {
     },
   };
 
-  // 使用axios发送POST请求并等待响应
-  const response = await axios.post(url, payload, config);
-  // 返回响应数据
-  return response.data;
+  try {
+    const response = await axios.post(url, payload, config);
+    return response.data;
+  } catch (error) {
+    log(`获取数据错误: ${error.message}`);
+    throw error;
+  }
 }
 
 /**
@@ -69,22 +102,46 @@ async function getData() {
  * @param {Object} data 需要保存的数据对象。
  */
 function saveData(url, data) {
-  const dirname = path.dirname(url); // 获取文件路径中的目录部分
-  // 检查目录是否存在，如果不存在则创建目录
+  const dirname = path.dirname(url);
   if (!fs.existsSync(dirname)) {
     fs.mkdirSync(dirname, { recursive: true });
   }
-  // 检查文件是否存在，如果不存在则初始化为空数组
-  if (!fs.existsSync(url)) {
-    fs.writeFileSync(url, JSON.stringify([], null, 2), "utf8");
+
+  let jsonData = [];
+  if (fs.existsSync(url)) {
+    jsonData = JSON.parse(fs.readFileSync(url, "utf8"));
   }
 
-  // 读取并解析当前文件的数据，如果文件为空则默认为一个空数组
-  let jsonData = JSON.parse(fs.readFileSync(url, "utf8"));
-
-  // 将新数据添加到数组中
   jsonData.push(data);
 
-  // 更新文件内容为新的数据数组
-  fs.writeFileSync(url, JSON.stringify(jsonData, null, 2), "utf8");
+  fs.writeFileSync(url, JSON.stringify(jsonData, null, 2), "utf8", (err) => {
+    if (err) {
+      log(`保存数据错误: ${err.message}`);
+    }
+  });
+}
+
+// 确保在程序结束时执行的操作
+function shutdownGracefully(msg) {
+  log(msg);
+  process.exit(0);
+}
+ 
+// 监听程序退出事件
+process.on('exit', () => shutdownGracefully('程序正常关闭\n'));
+ 
+// 监听 Ctrl+C 信号
+process.on('SIGINT', () => shutdownGracefully('程序通过 Ctrl+C 关闭'));
+ 
+// 监听系统终止信号
+process.on('SIGTERM', () => shutdownGracefully('程序通过系统信号关闭'));
+
+/**
+ * 记录日志
+ * @param {string} message 日志信息
+ */
+function log(message) {
+  const t = new Date();
+  const logMessage = `[${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()} ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${message}\n`;
+  fs.appendFileSync(".log", logMessage, "utf8");
 }
